@@ -110,6 +110,8 @@ void GenerateRandomInstance(const double width, const double height,
     }
   }
 
+  // [TODO]: generate rotation matrix in vertical direction with some error
+
   // Randomly rotates and translates the 3D points.
   Eigen::Quaterniond q = Eigen::Quaterniond::UnitRandom();
   Eigen::Matrix3d R(q);
@@ -169,7 +171,7 @@ int main(int argc, char** argv) {
         10.0, &points2D, &rays, &points3D);
     std::cout << "   ... instance generated" << std::endl;
 
-    ransac_lib::calibrated_absolute_pose::CalibratedAbsolutePoseEstimator
+    ransac_lib::calibrated_absolute_pose::CalibratedAbsolutePoseEstimator2p
         solver(kFocalLength, kFocalLength, kInThreshPX * kInThreshPX, points2D,
                rays, points3D);
 
@@ -183,7 +185,7 @@ int main(int argc, char** argv) {
       ransac_lib::LocallyOptimizedMSAC<
           ransac_lib::calibrated_absolute_pose::CameraPose,
           ransac_lib::calibrated_absolute_pose::CameraPoses,
-          ransac_lib::calibrated_absolute_pose::CalibratedAbsolutePoseEstimator>
+          ransac_lib::calibrated_absolute_pose::CalibratedAbsolutePoseEstimator2p>
           lomsac;
       ransac_lib::RansacStatistics ransac_stats;
       auto ransac_start = std::chrono::system_clock::now();
