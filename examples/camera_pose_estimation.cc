@@ -212,26 +212,27 @@ int main(int argc, char** argv) {
       options.num_lsq_iterations_ = 4;
       options.num_lo_steps_ = 10;
 
-//      ransac_lib::LocallyOptimizedMSAC<
-//          ransac_lib::calibrated_absolute_pose::CameraPose,
-//          ransac_lib::calibrated_absolute_pose::CameraPoses,
-////          ransac_lib::calibrated_absolute_pose::CalibratedAbsolutePoseEstimator2p>
+      ransac_lib::LocallyOptimizedMSAC<
+          ransac_lib::calibrated_absolute_pose::CameraPose,
+          ransac_lib::calibrated_absolute_pose::CameraPoses,
+          ransac_lib::calibrated_absolute_pose::CalibratedAbsolutePoseEstimator2p>
 //          ransac_lib::calibrated_absolute_pose::CalibratedAbsolutePoseEstimator>
-//          lomsac;
+          lomsac;
 
 
-          ransac_lib::LocallyOptimizedTwoSolverMSAC<
-                  ransac_lib::calibrated_absolute_pose::CameraPose,
-                  ransac_lib::calibrated_absolute_pose::CameraPoses,
-                  ransac_lib::calibrated_absolute_pose::CalibratedAbsolutePoseEstimator2p,
-                  ransac_lib::calibrated_absolute_pose::CalibratedAbsolutePoseEstimator>
-                  lomsac;
+//          ransac_lib::LocallyOptimizedTwoSolverMSAC<
+//                  ransac_lib::calibrated_absolute_pose::CameraPose,
+//                  ransac_lib::calibrated_absolute_pose::CameraPoses,
+//                  ransac_lib::calibrated_absolute_pose::CalibratedAbsolutePoseEstimator2p,
+//                  ransac_lib::calibrated_absolute_pose::CalibratedAbsolutePoseEstimator>
+//                  lomsac;
 
       ransac_lib::RansacStatistics ransac_stats;
       auto ransac_start = std::chrono::system_clock::now();
       ransac_lib::calibrated_absolute_pose::CameraPose best_model;
       int num_ransac_inliers =
-          lomsac.EstimateModel(options, solver, fullSolver, &best_model, &ransac_stats);
+//          lomsac.EstimateModel(options, solver, fullSolver, &best_model, &ransac_stats);
+          lomsac.EstimateModel(options, solver, &best_model, &ransac_stats);
       auto ransac_end = std::chrono::system_clock::now();
       std::chrono::duration<double> elapsed_seconds = ransac_end - ransac_start;
       std::cout << "   ... LOMSAC found " << num_ransac_inliers

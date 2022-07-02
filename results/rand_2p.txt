@@ -1,0 +1,56 @@
+Inlier ratio: 1
+   ... instance generated
+   ... running LO-MSAC
+   ... LOMSAC found 1994 inliers in 1801 iterations with an inlier ratio of 0.997
+   ... LOMSAC took 0.372047 s
+ Inlier ratio: 0.9
+   ... instance generated
+   ... running LO-MSAC
+   ... LOMSAC found 21 inliers in 1000000 iterations with an inlier ratio of 0.0105
+   ... LOMSAC took 24.4954 s
+ Inlier ratio: 0.8
+   ... instance generated
+   ... running LO-MSAC
+   ... LOMSAC found 1567 inliers in 338 iterations with an inlier ratio of 0.7835
+   ... LOMSAC took 0.085544 s
+ Inlier ratio: 0.7
+   ... instance generated
+   ... running LO-MSAC
+   ... LOMSAC found 19 inliers in 1000000 iterations with an inlier ratio of 0.0095
+   ... LOMSAC took 39.5991 s
+ Inlier ratio: 0.6
+   ... instance generated
+   ... running LO-MSAC
+   ... LOMSAC found 15 inliers in 1000000 iterations with an inlier ratio of 0.0075
+   ... LOMSAC took 38.4621 s
+ Inlier ratio: 0.5
+   ... instance generated
+   ... running LO-MSAC
+   ... LOMSAC found 17 inliers in 1000000 iterations with an inlier ratio of 0.0085
+   ... LOMSAC took 34.1974 s
+ Inlier ratio: 0.4
+   ... instance generated
+   ... running LO-MSAC
+   ... LOMSAC found 15 inliers in 1000000 iterations with an inlier ratio of 0.0075
+   ... LOMSAC took 46.3795 s
+ Inlier ratio: 0.3
+   ... instance generated
+   ... running LO-MSAC
+   ... LOMSAC found 19 inliers in 1000000 iterations with an inlier ratio of 0.0095
+   ... LOMSAC took 48.5216 s
+ Inlier ratio: 0.2
+   ... instance generated
+   ... running LO-MSAC
+   ... LOMSAC found 12 inliers in 1000000 iterations with an inlier ratio of 0.006
+   ... LOMSAC took 42.8765 s
+ Inlier ratio: 0.1
+   ... instance generated
+   ... running LO-MSAC
+   ... LOMSAC found 14 inliers in 1000000 iterations with an inlier ratio of 0.007
+   ... LOMSAC took 35.6258 s
+ Inlier ratio: 0.05
+   ... instance generated
+   ... running LO-MSAC
+   ... LOMSAC found 100 inliers in 73679 iterations with an inlier ratio of 0.05
+   ... LOMSAC took 5.59145 s
+
