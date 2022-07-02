@@ -46,6 +46,27 @@
 #include <RansacLib/ransac.h>
 #include "calibrated_absolute_pose_estimator.h"
 
+std::vector<Eigen::Matrix3d> add_some_noise(double deviation) {
+    Eigen::Matrix3d Rz, Rx;
+
+    std::random_device rd; // obtain a random number from hardware
+    std::mt19937 gen(rd()); // seed the generator
+    std::normal_distribution<> distr(-deviation/2, deviation/2); // define the range
+    double x = distr(gen);
+    double z = x > 0 ? deviation - x : -(deviation + x);
+
+    double cx = std::cos(x*3.14159/180);
+    double sx = -1*std::sin(x*3.14159/180);
+
+    double cz = std::cos(z*3.14159/180);
+    double sz = -1*std::sin(z*3.14159/180);
+
+    Rz << cz, -sz, 0.0, sz, cz, 0.0, 0.0, 0.0, 1.0;
+    Rx << 1.0, 0.0, 0.0, 0.0, cx, -sx, 0.0, sx, cx;
+
+    return std::vector<Eigen::Matrix3d>{Rx, Rz};
+}
+
 namespace ransac_lib {
 namespace calibrated_absolute_pose {
 
@@ -110,15 +131,15 @@ void GenerateRandomInstance(const double width, const double height,
     }
   }
 
-  Eigen::Vector2d r;
-  r.setRandom().normalize();
+//  Eigen::Vector2d r;
+//  r.setRandom().normalize();
+//
+//  Eigen::Matrix3d R;
+//  R << r(0), 0.0, r(1), 0.0, 1.0, 0.0, -r(1), 0.0, r(0);
 
-  Eigen::Matrix3d R;
-  R << r(0), 0.0, r(1), 0.0, 1.0, 0.0, -r(1), 0.0, r(0);
-
-//  // Randomly rotates and translates the 3D points.
-//  Eigen::Quaterniond q = Eigen::Quaterniond::UnitRandom();
-//  Eigen::Matrix3d R(q);
+  // Randomly rotates and translates the 3D points.
+  Eigen::Quaterniond q = Eigen::Quaterniond::UnitRandom();
+  Eigen::Matrix3d R(q);
   std::uniform_real_distribution<double> distr_scale(1.0, 2.0);
   Eigen::Vector3d t(distr(rng), distr(rng), distr(rng));
   t *= distr_scale(rng);
@@ -134,30 +155,6 @@ void GenerateRandomInstance(const double width, const double height,
 
 }  // namespace calibrated_absolute_pose
 }  // namespace ransac_lib
-
-std::vector<Eigen::Matrix3d> add_some_noise(double deviation) {
-    Eigen::Matrix3d Rz, Rx;
-
-    std::random_device rd; // obtain a random number from hardware
-    std::mt19937 gen(rd()); // seed the generator
-    std::normal_distribution<> distr(-deviation/2, deviation/2); // define the range
-    double x = distr(gen);
-//    std::cout << "x: " << x << " for deviation: " << deviation << std::endl;
-    double z = x > 0 ? deviation - x : -(deviation + x);
-//    std::cout << "x: " << x << " z: " << z << std::endl;
-
-    double cx = std::cos(x*3.14159/180);
-    double sx = -1*std::sin(x*3.14159/180);
-
-    double cz = std::cos(z*3.14159/180);
-    double sz = -1*std::sin(z*3.14159/180);
-
-    Rz << cz, -sz, 0.0, sz, cz, 0.0, 0.0, 0.0, 1.0;
-    Rx << 1.0, 0.0, 0.0, 0.0, cx, -sx, 0.0, sx, cx;
-
-    return std::vector<Eigen::Matrix3d>{Rx, Rz};
-}
-
 
 int main(int argc, char** argv) {
   ransac_lib::LORansacOptions options;
@@ -201,8 +198,12 @@ int main(int argc, char** argv) {
 
 //    ransac_lib::calibrated_absolute_pose::CalibratedAbsolutePoseEstimator2p
     ransac_lib::calibrated_absolute_pose::CalibratedAbsolutePoseEstimator
-        solver(kFocalLength, kFocalLength, kInThreshPX * kInThreshPX, points2D,
+        fullSolver(kFocalLength, kFocalLength, kInThreshPX * kInThreshPX, points2D,
                rays, points3D);
+
+      ransac_lib::calibrated_absolute_pose::CalibratedAbsolutePoseEstimator2p
+              solver(kFocalLength, kFocalLength, kInThreshPX * kInThreshPX, points2D,
+                     rays, points3D);
 
     // Runs LO-MSAC, as described in Lebeda et al., BMVC 2012.
     std::cout << "   ... running LO-MSAC" << std::endl;
@@ -211,17 +212,26 @@ int main(int argc, char** argv) {
       options.num_lsq_iterations_ = 4;
       options.num_lo_steps_ = 10;
 
-      ransac_lib::LocallyOptimizedMSAC<
-          ransac_lib::calibrated_absolute_pose::CameraPose,
-          ransac_lib::calibrated_absolute_pose::CameraPoses,
-//          ransac_lib::calibrated_absolute_pose::CalibratedAbsolutePoseEstimator2p>
-          ransac_lib::calibrated_absolute_pose::CalibratedAbsolutePoseEstimator>
-          lomsac;
+//      ransac_lib::LocallyOptimizedMSAC<
+//          ransac_lib::calibrated_absolute_pose::CameraPose,
+//          ransac_lib::calibrated_absolute_pose::CameraPoses,
+////          ransac_lib::calibrated_absolute_pose::CalibratedAbsolutePoseEstimator2p>
+//          ransac_lib::calibrated_absolute_pose::CalibratedAbsolutePoseEstimator>
+//          lomsac;
+
+
+          ransac_lib::LocallyOptimizedTwoSolverMSAC<
+                  ransac_lib::calibrated_absolute_pose::CameraPose,
+                  ransac_lib::calibrated_absolute_pose::CameraPoses,
+                  ransac_lib::calibrated_absolute_pose::CalibratedAbsolutePoseEstimator2p,
+                  ransac_lib::calibrated_absolute_pose::CalibratedAbsolutePoseEstimator>
+                  lomsac;
+
       ransac_lib::RansacStatistics ransac_stats;
       auto ransac_start = std::chrono::system_clock::now();
       ransac_lib::calibrated_absolute_pose::CameraPose best_model;
       int num_ransac_inliers =
-          lomsac.EstimateModel(options, solver, &best_model, &ransac_stats);
+          lomsac.EstimateModel(options, solver, fullSolver, &best_model, &ransac_stats);
       auto ransac_end = std::chrono::system_clock::now();
       std::chrono::duration<double> elapsed_seconds = ransac_end - ransac_start;
       std::cout << "   ... LOMSAC found " << num_ransac_inliers
