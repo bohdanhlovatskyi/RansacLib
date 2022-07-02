@@ -1,0 +1,54 @@
+Running LO-MSAC
+   ... LOMSAC found 2000 inliers in 100 iterations with an inlier ratio of 1
+   ... LOMSAC took 4.15695 s
+ Inlier ratio: 0.9
+   ... instance generated
+   ... running LO-MSAC
+   ... LOMSAC found 1800 inliers in 100 iterations with an inlier ratio of 0.9
+   ... LOMSAC took 2.55466 s
+ Inlier ratio: 0.8
+   ... instance generated
+   ... running LO-MSAC
+   ... LOMSAC found 1600 inliers in 100 iterations with an inlier ratio of 0.8
+   ... LOMSAC took 2.21395 s
+ Inlier ratio: 0.7
+   ... instance generated
+   ... running LO-MSAC
+   ... LOMSAC found 1400 inliers in 100 iterations with an inlier ratio of 0.7
+   ... LOMSAC took 0.820069 s
+ Inlier ratio: 0.6
+   ... instance generated
+   ... running LO-MSAC
+   ... LOMSAC found 1200 inliers in 100 iterations with an inlier ratio of 0.6
+   ... LOMSAC took 1.16429 s
+ Inlier ratio: 0.5
+   ... instance generated
+   ... running LO-MSAC
+   ... LOMSAC found 1000 inliers in 144 iterations with an inlier ratio of 0.5
+   ... LOMSAC took 4.42223 s
+ Inlier ratio: 0.4
+   ... instance generated
+   ... running LO-MSAC
+   ... LOMSAC found 800 inliers in 356 iterations with an inlier ratio of 0.4
+   ... LOMSAC took 3.81429 s
+ Inlier ratio: 0.3
+   ... instance generated
+   ... running LO-MSAC
+   ... LOMSAC found 600 inliers in 1133 iterations with an inlier ratio of 0.3
+   ... LOMSAC took 1.22344 s
+ Inlier ratio: 0.2
+   ... instance generated
+   ... running LO-MSAC
+   ... LOMSAC found 400 inliers in 5753 iterations with an inlier ratio of 0.2
+   ... LOMSAC took 3.01899 s
+ Inlier ratio: 0.1
+   ... instance generated
+   ... running LO-MSAC
+   ... LOMSAC found 200 inliers in 92100 iterations with an inlier ratio of 0.1
+   ... LOMSAC took 4.07701 s
+ Inlier ratio: 0.05
+   ... instance generated
+   ... running LO-MSAC
+   ... LOMSAC found 100 inliers in 1000000 iterations with an inlier ratio of 0.05
+   ... LOMSAC took 32.694 s
+
