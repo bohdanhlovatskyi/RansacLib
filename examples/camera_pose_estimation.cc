@@ -140,6 +140,9 @@ void GenerateRandomInstance(const double width, const double height,
   // Randomly rotates and translates the 3D points.
   Eigen::Quaterniond q = Eigen::Quaterniond::UnitRandom();
   Eigen::Matrix3d R(q);
+
+  std::cout << "R: " << std::endl << R << std::endl << std::endl;
+
   std::uniform_real_distribution<double> distr_scale(1.0, 2.0);
   Eigen::Vector3d t(distr(rng), distr(rng), distr(rng));
   t *= distr_scale(rng);
@@ -206,39 +209,39 @@ int main(int argc, char** argv) {
                      rays, points3D);
 
     // Runs LO-MSAC, as described in Lebeda et al., BMVC 2012.
-    std::cout << "   ... running LO-MSAC" << std::endl;
+    std::cout << "   ... running two solvers LO-MSAC" << std::endl;
     {
       options.min_sample_multiplicator_ = 7;
       options.num_lsq_iterations_ = 4;
       options.num_lo_steps_ = 10;
 
-      ransac_lib::LocallyOptimizedMSAC<
-          ransac_lib::calibrated_absolute_pose::CameraPose,
-          ransac_lib::calibrated_absolute_pose::CameraPoses,
-          ransac_lib::calibrated_absolute_pose::CalibratedAbsolutePoseEstimator2p>
+//      ransac_lib::LocallyOptimizedMSAC<
+//          ransac_lib::calibrated_absolute_pose::CameraPose,
+//          ransac_lib::calibrated_absolute_pose::CameraPoses,
+////          ransac_lib::calibrated_absolute_pose::CalibratedAbsolutePoseEstimator2p>
 //          ransac_lib::calibrated_absolute_pose::CalibratedAbsolutePoseEstimator>
-          lomsac;
+//          lomsac;
 
 
-//          ransac_lib::LocallyOptimizedTwoSolverMSAC<
-//                  ransac_lib::calibrated_absolute_pose::CameraPose,
-//                  ransac_lib::calibrated_absolute_pose::CameraPoses,
-//                  ransac_lib::calibrated_absolute_pose::CalibratedAbsolutePoseEstimator2p,
-//                  ransac_lib::calibrated_absolute_pose::CalibratedAbsolutePoseEstimator>
-//                  lomsac;
+          ransac_lib::LocallyOptimizedTwoSolverMSAC<
+                  ransac_lib::calibrated_absolute_pose::CameraPose,
+                  ransac_lib::calibrated_absolute_pose::CameraPoses,
+                  ransac_lib::calibrated_absolute_pose::CalibratedAbsolutePoseEstimator2p,
+                  ransac_lib::calibrated_absolute_pose::CalibratedAbsolutePoseEstimator>
+                  lomsac;
 
       ransac_lib::RansacStatistics ransac_stats;
       auto ransac_start = std::chrono::system_clock::now();
       ransac_lib::calibrated_absolute_pose::CameraPose best_model;
       int num_ransac_inliers =
-//          lomsac.EstimateModel(options, solver, fullSolver, &best_model, &ransac_stats);
-          lomsac.EstimateModel(options, solver, &best_model, &ransac_stats);
+          lomsac.EstimateModel(options, solver, fullSolver, &best_model, &ransac_stats);
+//          lomsac.EstimateModel(options, fullSolver, &best_model, &ransac_stats);
       auto ransac_end = std::chrono::system_clock::now();
       std::chrono::duration<double> elapsed_seconds = ransac_end - ransac_start;
       std::cout << "   ... LOMSAC found " << num_ransac_inliers
                 << " inliers in " << ransac_stats.num_iterations
                 << " iterations with an inlier ratio of "
-                << ransac_stats.inlier_ratio << std::endl;
+                << ransac_stats.inlier_ratio << ", " << ransac_stats.best_model_score << std::endl;
       std::cout << "   ... LOMSAC took " << elapsed_seconds.count() << " s"
                 << std::endl;
     }

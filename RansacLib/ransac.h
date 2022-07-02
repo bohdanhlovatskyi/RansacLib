@@ -166,6 +166,8 @@ class LocallyOptimizedMSAC : public RansacBase {
         LocalOptimization(options, solver, &rng, best_model,
                           &(stats.best_model_score));
 
+        std::cout << "First LO: " << stats.best_model_score << std::endl;
+
         // Updates the number of RANSAC iterations.
         stats.best_num_inliers = GetInliers(
             solver, *best_model, kSqrInlierThresh, &(stats.inlier_indices));
@@ -190,6 +192,8 @@ class LocallyOptimizedMSAC : public RansacBase {
       GetBestEstimatedModelId(solver, estimated_models, kNumEstimatedModels,
                               kSqrInlierThresh, &best_local_score,
                               &best_local_model_id);
+
+      std::cout << "Best local score:" << best_local_score << std::endl;
 
       // Updates the best model found so far.
       if (best_local_score < best_min_model_score ||
@@ -222,6 +226,8 @@ class LocallyOptimizedMSAC : public RansacBase {
           double score = best_min_model_score;
           LocalOptimization(options, solver, &rng, &best_minimal_model, &score);
 
+          std::cout << "After LO: " << score << std::endl;
+
           // Updates the best model.
           UpdateBestModel(score, best_minimal_model, &(stats.best_model_score),
                           best_model);
@@ -248,13 +254,14 @@ class LocallyOptimizedMSAC : public RansacBase {
       LocalOptimization(options, solver, &rng, best_model,
                         &(stats.best_model_score));
 
+      std::cout << "After LO: " << stats.best_model_score << std::endl;
+
       stats.best_num_inliers = GetInliers(solver, *best_model, kSqrInlierThresh,
                                           &(stats.inlier_indices));
       stats.inlier_ratio = static_cast<double>(stats.best_num_inliers) /
                            static_cast<double>(kNumData);
     }
 
-    // fullSolver at the end?
     if (options.final_least_squares_) {
       Model refined_model = *best_model;
       solver.LeastSquares(stats.inlier_indices, &refined_model);
@@ -263,6 +270,7 @@ class LocallyOptimizedMSAC : public RansacBase {
       ScoreModel(solver, refined_model, kSqrInlierThresh, &score);
       if (score < stats.best_model_score) {
         stats.best_model_score = score;
+        std::cout << "Final best score: " << score << std::endl;
         *best_model = refined_model;
 
         stats.best_num_inliers = GetInliers(
@@ -480,6 +488,8 @@ class LocallyOptimizedMSAC : public RansacBase {
                     LocalOptimization(options, fullSolver, &rng, best_model,
                                       &(stats.best_model_score));
 
+                    std::cout << "First LO: " << stats.best_model_score << std::endl;
+
                     // Updates the number of RANSAC iterations.
                     stats.best_num_inliers = GetInliers(
                             fullSolver, *best_model, kSqrInlierThresh, &(stats.inlier_indices));
@@ -504,6 +514,8 @@ class LocallyOptimizedMSAC : public RansacBase {
                 GetBestEstimatedModelId(solver, estimated_models, kNumEstimatedModels,
                                         kSqrInlierThresh, &best_local_score,
                                         &best_local_model_id);
+
+                std::cout << "Best local score:" << best_local_score << std::endl;
 
                 // Updates the best model found so far.
                 if (best_local_score < best_min_model_score ||
@@ -536,6 +548,8 @@ class LocallyOptimizedMSAC : public RansacBase {
                         double score = best_min_model_score;
                         LocalOptimization(options, fullSolver, &rng, &best_minimal_model, &score);
 
+                        std::cout << "After LO 2: " << score << std::endl;
+
                         // Updates the best model.
                         UpdateBestModel(score, best_minimal_model, &(stats.best_model_score),
                                         best_model);
@@ -566,6 +580,8 @@ class LocallyOptimizedMSAC : public RansacBase {
                 LocalOptimization(options, fullSolver, &rng, best_model,
                                   &(stats.best_model_score));
 
+                std::cout << "After LO: " << stats.best_model_score << std::endl;
+
                 stats.best_num_inliers = GetInliers(fullSolver, *best_model, kSqrInlierThresh,
                                                     &(stats.inlier_indices));
                 stats.inlier_ratio = static_cast<double>(stats.best_num_inliers) /
@@ -580,6 +596,9 @@ class LocallyOptimizedMSAC : public RansacBase {
                 ScoreModel(fullSolver, refined_model, kSqrInlierThresh, &score);
                 if (score < stats.best_model_score) {
                     stats.best_model_score = score;
+
+                    std::cout << "Final score: " << score << std::endl;
+
                     *best_model = refined_model;
 
                     stats.best_num_inliers = GetInliers(
