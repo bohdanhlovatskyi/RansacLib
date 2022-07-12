@@ -70,7 +70,30 @@ std::vector<Eigen::Matrix3d> add_some_noise(double deviation) {
 namespace ransac_lib {
 namespace calibrated_absolute_pose {
 
-void GenerateRandomInstance(const double width, const double height,
+    std::vector<Eigen::Matrix3d> add_some_noise(double deviation) {
+        Eigen::Matrix3d Rz, Rx;
+
+        std::random_device rd; // obtain a random number from hardware
+        std::mt19937 gen(rd()); // seed the generator
+        std::normal_distribution<> distr(-deviation / 2, deviation / 2); // define the range
+        double x = distr(gen);
+//    std::cout << "x: " << x << " for deviation: " << deviation << std::endl;
+        double z = x > 0 ? deviation - x : -(deviation + x);
+//    std::cout << "x: " << x << " z: " << z << std::endl;
+
+        double cx = std::cos(x * 3.14159 / 180);
+        double sx = -1 * std::sin(x * 3.14159 / 180);
+
+        double cz = std::cos(z * 3.14159 / 180);
+        double sz = -1 * std::sin(z * 3.14159 / 180);
+
+        Rz << cz, -sz, 0.0, sz, cz, 0.0, 0.0, 0.0, 1.0;
+        Rx << 1.0, 0.0, 0.0, 0.0, cx, -sx, 0.0, sx, cx;
+
+        return std::vector < Eigen::Matrix3d > {Rx, Rz};
+    }
+
+        void GenerateRandomInstance(const double width, const double height,
                             const double focal_length, const int num_inliers,
                             const int num_outliers, double inlier_threshold,
                             const double min_depth, const double max_depth,
@@ -131,15 +154,23 @@ void GenerateRandomInstance(const double width, const double height,
     }
   }
 
-//  Eigen::Vector2d r;
-//  r.setRandom().normalize();
-//
-//  Eigen::Matrix3d R;
-//  R << r(0), 0.0, r(1), 0.0, 1.0, 0.0, -r(1), 0.0, r(0);
+  size_t deviation = 5;
 
-  // Randomly rotates and translates the 3D points.
-  Eigen::Quaterniond q = Eigen::Quaterniond::UnitRandom();
-  Eigen::Matrix3d R(q);
+  Eigen::Vector2d r;
+  r.setRandom().normalize();
+
+  Eigen::Matrix3d R;
+  R << r(0), 0.0, r(1), 0.0, 1.0, 0.0, -r(1), 0.0, r(0);
+  auto noise = add_some_noise(deviation);
+  auto Rx = std::move(noise[0]);
+  auto Rz = std::move(noise[1]);
+//
+//            std::cout << Rz << std::endl << std::endl << Rx << std::endl << std::endl;
+  R = Rz * Rx * R;
+
+//  // Randomly rotates and translates the 3D points.
+//  Eigen::Quaterniond q = Eigen::Quaterniond::UnitRandom();
+//  Eigen::Matrix3d R(q);
 
   std::cout << "R: " << std::endl << R << std::endl << std::endl;
 
@@ -199,43 +230,46 @@ int main(int argc, char** argv) {
         10.0, &points2D, &rays, &points3D);
     std::cout << "   ... instance generated" << std::endl;
 
-//    ransac_lib::calibrated_absolute_pose::CalibratedAbsolutePoseEstimator2p
     ransac_lib::calibrated_absolute_pose::CalibratedAbsolutePoseEstimator
         fullSolver(kFocalLength, kFocalLength, kInThreshPX * kInThreshPX, points2D,
                rays, points3D);
 
-      ransac_lib::calibrated_absolute_pose::CalibratedAbsolutePoseEstimator2p
+    ransac_lib::calibrated_absolute_pose::CalibratedAbsolutePoseEstimator2p
               solver(kFocalLength, kFocalLength, kInThreshPX * kInThreshPX, points2D,
                      rays, points3D);
 
     // Runs LO-MSAC, as described in Lebeda et al., BMVC 2012.
-    std::cout << "   ... running two solvers LO-MSAC" << std::endl;
+    std::cout << "   ... running LO-MSAC" << std::endl;
     {
       options.min_sample_multiplicator_ = 7;
       options.num_lsq_iterations_ = 4;
       options.num_lo_steps_ = 10;
 
-//      ransac_lib::LocallyOptimizedMSAC<
-//          ransac_lib::calibrated_absolute_pose::CameraPose,
-//          ransac_lib::calibrated_absolute_pose::CameraPoses,
-////          ransac_lib::calibrated_absolute_pose::CalibratedAbsolutePoseEstimator2p>
-//          ransac_lib::calibrated_absolute_pose::CalibratedAbsolutePoseEstimator>
-//          lomsac;
-
-
-          ransac_lib::LocallyOptimizedTwoSolverMSAC<
+#ifndef FAST_ESTIMATOR
+      std::cout << "running full estimator" << std::endl;
+      ransac_lib::LocallyOptimizedTwoSolverMSAC<
                   ransac_lib::calibrated_absolute_pose::CameraPose,
                   ransac_lib::calibrated_absolute_pose::CameraPoses,
                   ransac_lib::calibrated_absolute_pose::CalibratedAbsolutePoseEstimator2p,
                   ransac_lib::calibrated_absolute_pose::CalibratedAbsolutePoseEstimator>
                   lomsac;
-
+#else
+      ransac_lib::LocallyOptimizedMSAC<
+          ransac_lib::calibrated_absolute_pose::CameraPose,
+          ransac_lib::calibrated_absolute_pose::CameraPoses,
+//          ransac_lib::calibrated_absolute_pose::CalibratedAbsolutePoseEstimator2p>
+          ransac_lib::calibrated_absolute_pose::CalibratedAbsolutePoseEstimator>
+          lomsac;
+#endif
       ransac_lib::RansacStatistics ransac_stats;
       auto ransac_start = std::chrono::system_clock::now();
       ransac_lib::calibrated_absolute_pose::CameraPose best_model;
       int num_ransac_inliers =
-          lomsac.EstimateModel(options, solver, fullSolver, &best_model, &ransac_stats);
-//          lomsac.EstimateModel(options, fullSolver, &best_model, &ransac_stats);
+#ifndef FAST_ESTIMATOR
+      lomsac.EstimateModel(options, solver, fullSolver, &best_model, &ransac_stats);
+#else
+      lomsac.EstimateModel(options, fullSolver, &best_model, &ransac_stats);
+#endif
       auto ransac_end = std::chrono::system_clock::now();
       std::chrono::duration<double> elapsed_seconds = ransac_end - ransac_start;
       std::cout << "   ... LOMSAC found " << num_ransac_inliers

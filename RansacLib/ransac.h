@@ -193,7 +193,7 @@ class LocallyOptimizedMSAC : public RansacBase {
                               kSqrInlierThresh, &best_local_score,
                               &best_local_model_id);
 
-      std::cout << "Best local score:" << best_local_score << std::endl;
+//      std::cout << "Best local score:" << best_local_score << std::endl;
 
       // Updates the best model found so far.
       if (best_local_score < best_min_model_score ||
@@ -497,7 +497,7 @@ class LocallyOptimizedMSAC : public RansacBase {
                                          static_cast<double>(kNumData);
                     max_num_iterations = utils::NumRequiredIterations(
                             stats.inlier_ratio, 1.0 - options.success_probability_,
-                            kMinSampleSize, options.min_num_iterations_,
+                            fullSolver.min_sample_size(), options.min_num_iterations_,
                             options.max_num_iterations_);
                 }
 
@@ -515,7 +515,7 @@ class LocallyOptimizedMSAC : public RansacBase {
                                         kSqrInlierThresh, &best_local_score,
                                         &best_local_model_id);
 
-                std::cout << "Best local score:" << best_local_score << std::endl;
+//                std::cout << "Best local score:" << best_local_score << std::endl;
 
                 // Updates the best model found so far.
                 if (best_local_score < best_min_model_score ||
@@ -566,7 +566,7 @@ class LocallyOptimizedMSAC : public RansacBase {
                                          static_cast<double>(kNumData);
                     max_num_iterations = utils::NumRequiredIterations(
                             stats.inlier_ratio, 1.0 - options.success_probability_,
-                            kMinSampleSize, options.min_num_iterations_,
+                            fullSolver.min_sample_size(), options.min_num_iterations_,
                             options.max_num_iterations_);
                 }
             }
