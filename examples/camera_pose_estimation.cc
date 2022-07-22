@@ -107,8 +107,8 @@ namespace ransac_lib
                                 const double focal_length, const int num_inliers,
                                 const int num_outliers, double inlier_threshold,
                                 const double min_depth, const double max_depth,
-                                Points2D *points2D, ViewingRays *rays,
-                                Points3D *points3D)
+                                const size_t deviation, Points2D *points2D,
+                                ViewingRays *rays, Points3D *points3D)
     {
       const int kNumPoints = num_inliers + num_outliers;
       points2D->resize(kNumPoints);
@@ -168,8 +168,6 @@ namespace ransac_lib
         }
       }
 
-      size_t deviation = 5;
-
       Eigen::Vector2d r;
       r.setRandom().normalize();
 
@@ -178,15 +176,12 @@ namespace ransac_lib
       auto noise = add_some_noise(deviation);
       auto Rx = std::move(noise[0]);
       auto Rz = std::move(noise[1]);
-      //
-      //            std::cout << Rz << std::endl << std::endl << Rx << std::endl << std::endl;
+
       R = Rz * Rx * R;
 
       //  // Randomly rotates and translates the 3D points.
       //  Eigen::Quaterniond q = Eigen::Quaterniond::UnitRandom();
       //  Eigen::Matrix3d R(q);
-
-      //  std::cout << "R: " << std::endl << R << std::endl << std::endl;
 
       std::uniform_real_distribution<double> distr_scale(1.0, 2.0);
       Eigen::Vector3d t(distr(rng), distr(rng), distr(rng));
@@ -260,10 +255,19 @@ void run_solver(Ransac ransac, Solver solver, ransac_lib::LORansacOptions& optio
 
 int main(int argc, char **argv)
 {
+
+
   using ransac_lib::calibrated_absolute_pose::Points3D;
   using ransac_lib::calibrated_absolute_pose::ViewingRays;
 
-  std::ifstream f("../config.cfg");
+  if (argc != 3) {
+    std::cerr << "wrong usage : specify deviation" << std::endl;
+    exit(1);
+  }
+
+  const size_t deviation = atoi(argv[2]);
+
+  std::ifstream f(argv[1]);
 
   auto solvers_vec = config_to_vec(f);
   auto outlier_ratios = config_to_vec(f);
@@ -288,7 +292,7 @@ int main(int argc, char **argv)
 
   for (const double outlier_ratio : outlier_ratios)
   {
-    std::cout << std::endl;
+    // std::cout << "running for: " << 1 - outlier_ratio << std::endl << std::endl;
     int num_outliers =
         static_cast<int>(static_cast<double>(kNumDataPoints) * outlier_ratio);
     int num_inliers = kNumDataPoints - num_outliers;
@@ -298,7 +302,7 @@ int main(int argc, char **argv)
     Points3D points3D;
     ransac_lib::calibrated_absolute_pose::GenerateRandomInstance(
         kWidth, kHeight, kFocalLength, num_inliers, num_outliers, 2.0, 2.0,
-        10.0, &points2D, &rays, &points3D);
+        10.0, deviation, &points2D, &rays, &points3D);
 
     const ransac_lib::calibrated_absolute_pose::CalibratedAbsolutePoseEstimator
         fullSolver(kFocalLength, kFocalLength, kInThreshPX * kInThreshPX, points2D,

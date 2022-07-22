@@ -3,3 +3,5 @@ b
 cmake-build-debug
 .idea
 .vscode
+results
+logs

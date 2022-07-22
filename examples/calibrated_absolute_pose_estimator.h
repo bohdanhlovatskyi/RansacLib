@@ -91,6 +91,8 @@ class CalibratedAbsolutePoseEstimator {
 
   inline int non_minimal_sample_size() const { return 6; }
 
+  inline std::string name() const { return "p3p"; }
+
   inline int num_data() const { return num_data_; }
 
   int MinimalSolver(const std::vector<int>& sample, CameraPoses* poses) const;
@@ -145,6 +147,8 @@ class CalibratedAbsolutePoseEstimator2p {
         inline int non_minimal_sample_size() const { return 6; }
 
         inline int num_data() const { return num_data_; }
+
+        inline std::string name() const { return "p2p"; }
 
         int MinimalSolver(const std::vector<int>& sample, CameraPoses* poses) const;
 
