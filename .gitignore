@@ -1,9 +1,0 @@
-.DS_Store
-b
-cmake-build-debug
-.idea
-.vscode
-results
-logs
-env
-venv
