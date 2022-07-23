@@ -6,7 +6,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 deviations = [0, 2, 5, 10, 15, 20, 25]
-iterations = 2
+iterations = 10
 
 dirname = "results"
 
@@ -18,7 +18,7 @@ if __name__ == '__main__':
         for idx, dev in enumerate(deviations):
             print(f"running {i} : {dev} :(")
             outputs = subprocess.run(
-                ["b/examples/camera_pose_estimation", "/Users/hlovatskyibohdan/lab/pose_estimation/RansacLib/config.cfg", str(dev)],
+                ["b/examples/camera_pose_estimation", "/home/ubuntu-system/pose_estimation/RansacLib/config.cfg", str(dev)],
                 capture_output=True)
 
             outputs = outputs.stdout.decode("utf-8")

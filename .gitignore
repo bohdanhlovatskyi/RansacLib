@@ -5,3 +5,5 @@ cmake-build-debug
 .vscode
 results
 logs
+env
+venv
