@@ -52,28 +52,6 @@
 #include <RansacLib/ransac.h>
 #include "calibrated_absolute_pose_estimator.h"
 
-std::vector<Eigen::Matrix3d> add_some_noise(double deviation)
-{
-  Eigen::Matrix3d Rz, Rx;
-
-  std::random_device rd;                                           // obtain a random number from hardware
-  std::mt19937 gen(rd());                                          // seed the generator
-  std::normal_distribution<> distr(-deviation / 2, deviation / 2); // define the range
-  double x = distr(gen);
-  double z = x > 0 ? deviation - x : -(deviation + x);
-
-  double cx = std::cos(x * 3.14159 / 180);
-  double sx = -1 * std::sin(x * 3.14159 / 180);
-
-  double cz = std::cos(z * 3.14159 / 180);
-  double sz = -1 * std::sin(z * 3.14159 / 180);
-
-  Rz << cz, -sz, 0.0, sz, cz, 0.0, 0.0, 0.0, 1.0;
-  Rx << 1.0, 0.0, 0.0, 0.0, cx, -sx, 0.0, sx, cx;
-
-  return std::vector<Eigen::Matrix3d>{Rx, Rz};
-}
-
 namespace ransac_lib
 {
   namespace calibrated_absolute_pose
@@ -85,11 +63,11 @@ namespace ransac_lib
 
       std::random_device rd;                                           // obtain a random number from hardware
       std::mt19937 gen(rd());                                          // seed the generator
-      std::normal_distribution<> distr(-deviation / 2, deviation / 2); // define the range
+      std::uniform_real_distribution<> distr(-deviation / 2, deviation / 2); // define the range
       double x = distr(gen);
-      //    std::cout << "x: " << x << " for deviation: " << deviation << std::endl;
-      double z = x > 0 ? deviation - x : -(deviation + x);
-      //    std::cout << "x: " << x << " z: " << z << std::endl;
+      double z = deviation - std::abs(x);
+      z = distr(gen) > 0 ? z : -z;
+      assert(std::abs(x) + std::abs(z) == deviation);
 
       double cx = std::cos(x * 3.14159 / 180);
       double sx = -1 * std::sin(x * 3.14159 / 180);
@@ -236,7 +214,8 @@ void run_solver(Ransac ransac, Solver solver, OtherSolver full_solver, ransac_li
 
   std::chrono::duration<double> elapsed_seconds = ransac_end - ransac_start;
   std::cout << num_inliers << ", " << ransac_stats.num_iterations << ", " << ransac_stats.inlier_ratio << ", "
-            << ransac_stats.best_model_score << ", " << elapsed_seconds.count() << std::endl;
+            << ransac_stats.best_model_score << ", " << elapsed_seconds.count() << ", "
+            << ransac_stats.number_lo_iterations << std::endl;
 }
 
 template<typename Ransac, typename Solver>
@@ -250,7 +229,8 @@ void run_solver(Ransac ransac, Solver solver, ransac_lib::LORansacOptions& optio
 
   std::chrono::duration<double> elapsed_seconds = ransac_end - ransac_start;
   std::cout << num_inliers << ", " << ransac_stats.num_iterations << ", " << ransac_stats.inlier_ratio << ", "
-            << ransac_stats.best_model_score << ", " << elapsed_seconds.count() << std::endl;
+            << ransac_stats.best_model_score << ", " << elapsed_seconds.count() << ", "
+            << ransac_stats.number_lo_iterations << std::endl;
 }
 
 int main(int argc, char **argv)
@@ -289,6 +269,7 @@ int main(int argc, char **argv)
   options.min_sample_multiplicator_ = 7;
   options.num_lsq_iterations_ = 4;
   options.num_lo_steps_ = 10;
+  options.final_least_squares_ = true;
 
   for (const double outlier_ratio : outlier_ratios)
   {
@@ -304,12 +285,19 @@ int main(int argc, char **argv)
         kWidth, kHeight, kFocalLength, num_inliers, num_outliers, 2.0, 2.0,
         10.0, deviation, &points2D, &rays, &points3D);
 
+
     const ransac_lib::calibrated_absolute_pose::CalibratedAbsolutePoseEstimator
         fullSolver(kFocalLength, kFocalLength, kInThreshPX * kInThreshPX, points2D,
                    rays, points3D);
 
+    // currently inlier threshold does not make any influence
     const ransac_lib::calibrated_absolute_pose::CalibratedAbsolutePoseEstimator2p
         solver(kFocalLength, kFocalLength, kInThreshPX * kInThreshPX, points2D,
+               rays, points3D);
+
+    // currently inlier threshold does not make any influence
+    const ransac_lib::calibrated_absolute_pose::CalibratedAbsolutePoseEstimator2p
+        dyn_solver(kFocalLength, kFocalLength, std::pow(1.0 / (1.0 - outlier_ratio), 1.0/2.0) * kInThreshPX * kInThreshPX, points2D,
                rays, points3D);
 
     ransac_lib::LocallyOptimizedTwoSolverMSAC<
@@ -330,7 +318,13 @@ int main(int argc, char **argv)
         ransac_lib::calibrated_absolute_pose::CameraPoses,
         ransac_lib::calibrated_absolute_pose::CalibratedAbsolutePoseEstimator2p>
         p2plomsac;
-
+        
+    ransac_lib::LocallyOptimizedMSAC<
+        ransac_lib::calibrated_absolute_pose::CameraPose,
+        ransac_lib::calibrated_absolute_pose::CameraPoses,
+        ransac_lib::calibrated_absolute_pose::CalibratedAbsolutePoseEstimator2p>
+        dyn_p2plomsac;
+    
     if (solvers_to_run.find(1) != solvers_to_run.end())
       run_solver(flomsac, solver, fullSolver, options);
 
@@ -339,6 +333,9 @@ int main(int argc, char **argv)
   
     if (solvers_to_run.find(3) != solvers_to_run.end())
       run_solver(p3plomsac, fullSolver, options);
+
+    if (solvers_to_run.find(4) != solvers_to_run.end())
+      run_solver(dyn_p2plomsac, dyn_solver, options);
   }
 
   return 0;

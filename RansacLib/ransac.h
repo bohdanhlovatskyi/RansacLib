@@ -140,6 +140,8 @@ namespace ransac_lib
       ResetStatistics(statistics);
       RansacStatistics &stats = *statistics;
 
+      // std::cout << "[" << solver.name() << "]" << std::endl;
+
       // Sanity check: No need to run RANSAC if there are not enough data
       // points.
       const int kMinSampleSize = solver.min_sample_size();
@@ -149,6 +151,7 @@ namespace ransac_lib
       const int kNumData = solver.num_data();
       if (kMinSampleSize > kNumData || kMinSampleSize <= 0)
       {
+        assert(false && "Minimum sample size is invalid");
         return 0;
       }
 
@@ -161,6 +164,9 @@ namespace ransac_lib
           std::max(options.max_num_iterations_, options.min_num_iterations_);
 
       const double kSqrInlierThresh = options.squared_inlier_threshold_;
+#ifdef DEBUG
+      std::cout << "[" << solver.name() << "]" << "[threshold: " << kSqrInlierThresh << "]: " << std::endl;
+#endif
 
       Model best_minimal_model;
       double best_min_model_score = std::numeric_limits<double>::max();
@@ -185,8 +191,12 @@ namespace ransac_lib
           std::cout << "[" << solver.name() << "]" << "[lo_starting_iterations]: " << stats.best_model_score << std::endl;
 #endif
           // Updates the number of RANSAC iterations.
-          stats.best_num_inliers = GetInliers(
+          auto cur_inliers = GetInliers(
               solver, *best_model, kSqrInlierThresh, &(stats.inlier_indices));
+          // std::cout << cur_inliers << ", " << stats.best_num_inliers  << std::endl;
+          // assert(cur_inliers >= stats.best_num_inliers && "cost is better though we got less inliers");
+          stats.best_num_inliers = cur_inliers;
+          
           stats.inlier_ratio = static_cast<double>(stats.best_num_inliers) /
                                static_cast<double>(kNumData);
           max_num_iterations = utils::NumRequiredIterations(
@@ -235,8 +245,10 @@ namespace ransac_lib
               (stats.num_iterations >= options.lo_starting_iterations_ &&
                best_min_model_score < std::numeric_limits<double>::max());
 
-          if ((!kBestMinModel) && (!kRunLO))
+          if ((!kBestMinModel) && (!kRunLO)) {
+            assert("false" && "we are in update step though either of possibilities are not satisfied");
             continue;
+          }
 
           // Performs local optimization. By construction, the local optimization
           // method returns the best model between all models found by local
@@ -256,8 +268,12 @@ namespace ransac_lib
           }
 
           // Updates the number of RANSAC iterations.
-          stats.best_num_inliers = GetInliers(
+          auto cur_inliers = GetInliers(
               solver, *best_model, kSqrInlierThresh, &(stats.inlier_indices));
+          // std::cout << cur_inliers << ", " << stats.best_num_inliers  << std::endl;
+          // assert(cur_inliers >= stats.best_num_inliers && "cost is better though we got less inliers");
+          stats.best_num_inliers = cur_inliers;
+          
           stats.inlier_ratio = static_cast<double>(stats.best_num_inliers) /
                                static_cast<double>(kNumData);
           max_num_iterations = utils::NumRequiredIterations(
@@ -279,8 +295,11 @@ namespace ransac_lib
 #ifdef DEBUG
         std::cout << "[" << solver.name() << "]" << "[less than lo_starting_iteration finish]: " << stats.best_model_score << std::endl;
 #endif
-        stats.best_num_inliers = GetInliers(solver, *best_model, kSqrInlierThresh,
-                                            &(stats.inlier_indices));
+        auto cur_inliers = GetInliers(
+              solver, *best_model, kSqrInlierThresh, &(stats.inlier_indices));
+          // assert(cur_inliers >= stats.best_num_inliers && "cost is better though we got less inliers");
+          stats.best_num_inliers = cur_inliers;
+                   
         stats.inlier_ratio = static_cast<double>(stats.best_num_inliers) /
                              static_cast<double>(kNumData);
       }
@@ -300,8 +319,11 @@ namespace ransac_lib
 #endif
           *best_model = refined_model;
 
-          stats.best_num_inliers = GetInliers(
+          auto cur_inliers = GetInliers(
               solver, *best_model, kSqrInlierThresh, &(stats.inlier_indices));
+          // assert(cur_inliers >= stats.best_num_inliers && "cost is better though we got less inliers");
+          stats.best_num_inliers = cur_inliers;
+
           stats.inlier_ratio = static_cast<double>(stats.best_num_inliers) /
                                static_cast<double>(kNumData);
         }
@@ -334,6 +356,9 @@ namespace ransac_lib
     void ScoreModel(const Solver &solver, const Model &model,
                     const double squared_inlier_threshold, double *score) const
     {
+
+      // TODO: a place for SPRT ? 
+
       const int kNumData = solver.num_data();
       *score = 0.0;
       for (int i = 0; i < kNumData; ++i)
@@ -398,8 +423,10 @@ namespace ransac_lib
       // for a calibrated camera. A minimal sample has size 3, while the
       // smallest non-minimal sample has size 4.
       const int kMinNonMinSampleSize = solver.non_minimal_sample_size();
-      if (kMinNonMinSampleSize > kNumData)
+      if (kMinNonMinSampleSize > kNumData) {
+        assert(false && "Min amount of data needed for LO is less than data provided");
         return;
+      }
 
       const int kMinSampleSize = solver.min_sample_size();
 
@@ -425,8 +452,6 @@ namespace ransac_lib
           std::max(kMinNonMinSampleSize,
                    std::min(kMinSampleSize * options.non_min_sample_multiplier_,
                             static_cast<int>(inliers_base.size()) / 2));
-
-      //      std::cout << "os: " << kNonMinSampleSize << std::endl;
 
       // Performs the actual local optimization (LO).
       std::vector<int> sample;
@@ -545,11 +570,9 @@ namespace ransac_lib
           LocalOptimization(options, fullSolver, &rng, best_model,
                             &(stats.best_model_score));
 
-          //                    std::cout << "First LO: " << stats.best_model_score << std::endl;
-
           // Updates the number of RANSAC iterations.
           stats.best_num_inliers = GetInliers(
-              fullSolver, *best_model, kSqrInlierThresh, &(stats.inlier_indices));
+              solver, *best_model, kSqrInlierThresh, &(stats.inlier_indices));
           stats.inlier_ratio = static_cast<double>(stats.best_num_inliers) /
                                static_cast<double>(kNumData);
           max_num_iterations = utils::NumRequiredIterations(
@@ -615,15 +638,10 @@ namespace ransac_lib
             // Updates the best model.
             UpdateBestModel(score, best_minimal_model, &(stats.best_model_score),
                             best_model);
+          }
 
-            stats.best_num_inliers = GetInliers(
-                fullSolver, *best_model, kSqrInlierThresh, &(stats.inlier_indices));
-          }
-          else
-          {
-            stats.best_num_inliers = GetInliers(
+          stats.best_num_inliers = GetInliers(
                 solver, *best_model, kSqrInlierThresh, &(stats.inlier_indices));
-          }
 
           // Updates the number of RANSAC iterations.
           stats.inlier_ratio = static_cast<double>(stats.best_num_inliers) /
@@ -647,7 +665,7 @@ namespace ransac_lib
 
         //                std::cout << "After LO: " << stats.best_model_score << std::endl;
 
-        stats.best_num_inliers = GetInliers(fullSolver, *best_model, kSqrInlierThresh,
+        stats.best_num_inliers = GetInliers(solver, *best_model, kSqrInlierThresh,
                                             &(stats.inlier_indices));
         stats.inlier_ratio = static_cast<double>(stats.best_num_inliers) /
                              static_cast<double>(kNumData);
@@ -659,17 +677,17 @@ namespace ransac_lib
         fullSolver.LeastSquares(stats.inlier_indices, &refined_model);
 
         double score = std::numeric_limits<double>::max();
-        ScoreModel(fullSolver, refined_model, kSqrInlierThresh, &score);
+        ScoreModel(solver, refined_model, kSqrInlierThresh, &score);
         if (score < stats.best_model_score)
         {
           stats.best_model_score = score;
 
-          std::cout << "Final score: " << score << std::endl;
+          // std::cout << "Final score: " << score << std::endl;
 
           *best_model = refined_model;
 
           stats.best_num_inliers = GetInliers(
-              fullSolver, *best_model, kSqrInlierThresh, &(stats.inlier_indices));
+              solver, *best_model, kSqrInlierThresh, &(stats.inlier_indices));
           stats.inlier_ratio = static_cast<double>(stats.best_num_inliers) /
                                static_cast<double>(kNumData);
         }
@@ -797,8 +815,6 @@ namespace ransac_lib
           std::max(kMinNonMinSampleSize,
                    std::min(kMinSampleSize * options.non_min_sample_multiplier_,
                             static_cast<int>(inliers_base.size()) / 2));
-
-      //            std::cout << "ts: " << kNonMinSampleSize << std::endl;
 
       // Performs the actual local optimization (LO).
       std::vector<int> sample;

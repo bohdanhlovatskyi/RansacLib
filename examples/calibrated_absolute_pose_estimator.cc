@@ -127,6 +127,7 @@ namespace ransac_lib
 
       std::vector<poselib::CameraPose> poselib_poses;
       int num_sols = poselib::p3p(x, X, &poselib_poses);
+      // std::cout << num_sols << std::endl;
       if (num_sols == 0)
         return 0;
 
@@ -265,7 +266,6 @@ namespace ransac_lib
     int CalibratedAbsolutePoseEstimator2p::MinimalSolver(
         const std::vector<int> &sample, CameraPoses *poses) const
     {
-
       poses->clear();
       std::vector<Eigen::Vector3d> x(2), X(2);
       for (int i = 0; i < 2; ++i)
@@ -277,15 +277,42 @@ namespace ransac_lib
       std::vector<poselib::CameraPose> poselib_poses;
       int num_sols = poselib::up2p(x, X, &poselib_poses);
 
-      if (num_sols == 0)
+      if (num_sols == 0) {
+        // assert(false && "solver failed though it should have not");
         return 0;
+      }
+
+      // simply two points + local optim for p3p
+      // how distributiono of poitns affects the robustness
+
+      // chose the best out of two
+      // double kError = std::numeric_limits<double>::max();
+      // CameraPose best_pose;
+      // for (const poselib::CameraPose &pose : poselib_poses)
+      // {
+      //   CameraPose P;
+      //   P.topLeftCorner<3, 3>() = pose.R();
+      //   P.col(3) = -pose.R().transpose() * pose.t;
+
+      //   const double err = EvaluateModelOnPoint(P, sample[2]);
+      //   if (err < kError)
+      //   {
+      //     kError = err;
+      //     best_pose.topLeftCorner<3, 3>() = pose.R();
+      //     best_pose.col(3) = -pose.R().transpose() * pose.t;
+      //     // poses->push_back(P);
+      //     // break;
+      //   }
+      // }
+
+      // poses->push_back(best_pose);
 
       for (const poselib::CameraPose &pose : poselib_poses)
       {
         CameraPose P;
         P.topLeftCorner<3, 3>() = pose.R();
         P.col(3) = -pose.R().transpose() * pose.t;
-
+ 
         const double kError = EvaluateModelOnPoint(P, sample[2]);
         if (kError < squared_inlier_threshold_)
         {
@@ -302,7 +329,12 @@ namespace ransac_lib
     int CalibratedAbsolutePoseEstimator2p::NonMinimalSolver(
         const std::vector<int> &sample, CameraPose *pose) const
     {
+
+      // std::cout << "[" << name() << "]" << std::endl;
+
       CameraPoses poses;
+
+      // TODO : p3p on several samples
       if (MinimalSolver(sample, &poses) == 1)
       {
         *pose = poses[0];
