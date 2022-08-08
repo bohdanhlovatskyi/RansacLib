@@ -1,0 +1,41 @@
+/Applications/CLion.app/Contents/bin/cmake/mac/bin/cmake -DCMAKE_BUILD_TYPE=Debug -G "CodeBlocks - Unix Makefiles" /Users/hlovatskyibohdan/lab/pose_estimation/RansacLib
+-- Found AMD headers in: /usr/local/include
+-- Found AMD library: /usr/local/lib/libamd.dylib
+-- Found CAMD headers in: /usr/local/include
+-- Found CAMD library: /usr/local/lib/libcamd.dylib
+-- Found CCOLAMD headers in: /usr/local/include
+-- Found CCOLAMD library: /usr/local/lib/libccolamd.dylib
+-- Found CHOLMOD headers in: /usr/local/include
+-- Found CHOLMOD library: /usr/local/lib/libcholmod.dylib
+-- Found COLAMD headers in: /usr/local/include
+-- Found COLAMD library: /usr/local/lib/libcolamd.dylib
+-- Found SPQR headers in: /usr/local/include
+-- Found SPQR library: /usr/local/lib/libspqr.dylib
+-- Found Config headers in: /usr/local/include
+-- Found Config library: /usr/local/lib/libsuitesparseconfig.dylib
+-- Found Intel Thread Building Blocks (TBB) library (2021.5 / ) include location: . Assuming SuiteSparseQR was compiled with TBB.
+-- Could not find librt, but found SuiteSparse_config, assuming that SuiteSparse was compiled without timing.
+-- Found required Ceres dependency: Eigen version 3.4.0 in /usr/local/share/eigen3/cmake
+-- Found required Ceres dependency: glog
+-- Found required Ceres dependency: gflags
+-- Found Ceres version: 2.1.0 installed in: /usr/local with components: [EigenSparse, SparseLinearAlgebraLibrary, LAPACK, SuiteSparse, CXSparse, AccelerateSparse, SchurSpecializations, Multithreading]
+CMake Error at examples/CMakeLists.txt:13 (find_package):
+  By not providing "FindPoseLib.cmake" in CMAKE_MODULE_PATH this project has
+  asked CMake to find a package configuration file provided by "PoseLib", but
+  CMake did not find one.
+
+  Could not find a package configuration file provided by "PoseLib" with any
+  of the following names:
+
+    PoseLibConfig.cmake
+    poselib-config.cmake
+
+  Add the installation prefix of "PoseLib" to CMAKE_PREFIX_PATH or set
+  "PoseLib_DIR" to a directory containing one of the above files.  If
+  "PoseLib" provides a separate development package or SDK, be sure it has
+  been installed.
+
+
+-- Configuring incomplete, errors occurred!
+See also "/Users/hlovatskyibohdan/lab/pose_estimation/RansacLib/cmake-build-debug/CMakeFiles/CMakeOutput.log".
+See also "/Users/hlovatskyibohdan/lab/pose_estimation/RansacLib/cmake-build-debug/CMakeFiles/CMakeError.log".

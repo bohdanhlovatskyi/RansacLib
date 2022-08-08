@@ -264,6 +264,7 @@ int main(int argc, char **argv)
   ransac_lib::LORansacOptions options;
   options.min_num_iterations_ = 100u;
   options.max_num_iterations_ = 1000000u;
+//  options.max_num_iterations_ = 100000u;
   options.random_seed_ = rand_dev();
   options.squared_inlier_threshold_ = kInThreshPX * kInThreshPX;
   options.min_sample_multiplicator_ = 7;

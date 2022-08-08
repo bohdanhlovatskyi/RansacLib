@@ -285,41 +285,39 @@ namespace ransac_lib
       // simply two points + local optim for p3p
       // how distributiono of poitns affects the robustness
 
-      // chose the best out of two
-      // double kError = std::numeric_limits<double>::max();
-      // CameraPose best_pose;
-      // for (const poselib::CameraPose &pose : poselib_poses)
-      // {
-      //   CameraPose P;
-      //   P.topLeftCorner<3, 3>() = pose.R();
-      //   P.col(3) = -pose.R().transpose() * pose.t;
+//       chose the best out of two
+       double kError = std::numeric_limits<double>::max();
+       CameraPose best_pose;
+       for (const poselib::CameraPose &pose : poselib_poses)
+       {
+         CameraPose P;
+         P.topLeftCorner<3, 3>() = pose.R();
+         P.col(3) = -pose.R().transpose() * pose.t;
 
-      //   const double err = EvaluateModelOnPoint(P, sample[2]);
-      //   if (err < kError)
-      //   {
-      //     kError = err;
-      //     best_pose.topLeftCorner<3, 3>() = pose.R();
-      //     best_pose.col(3) = -pose.R().transpose() * pose.t;
-      //     // poses->push_back(P);
-      //     // break;
-      //   }
-      // }
+         const double err = EvaluateModelOnPoint(P, sample[2]);
+         if (err < kError)
+         {
+           kError = err;
+           best_pose.topLeftCorner<3, 3>() = pose.R();
+           best_pose.col(3) = -pose.R().transpose() * pose.t;
+         }
+       }
 
-      // poses->push_back(best_pose);
+       poses->push_back(best_pose);
 
-      for (const poselib::CameraPose &pose : poselib_poses)
-      {
-        CameraPose P;
-        P.topLeftCorner<3, 3>() = pose.R();
-        P.col(3) = -pose.R().transpose() * pose.t;
- 
-        const double kError = EvaluateModelOnPoint(P, sample[2]);
-        if (kError < squared_inlier_threshold_)
-        {
-          poses->push_back(P);
-          break;
-        }
-      }
+//      for (const poselib::CameraPose &pose : poselib_poses)
+//      {
+//        CameraPose P;
+//        P.topLeftCorner<3, 3>() = pose.R();
+//        P.col(3) = -pose.R().transpose() * pose.t;
+//
+//        const double kError = EvaluateModelOnPoint(P, sample[2]);
+//        if (kError < squared_inlier_threshold_)
+//        {
+//          poses->push_back(P);
+//          break;
+//        }
+//      }
 
       return static_cast<int>(poses->size());
     }

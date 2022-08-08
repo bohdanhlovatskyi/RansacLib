@@ -8,7 +8,7 @@ from multiprocessing import Pool
 import numpy as np
 import matplotlib.pyplot as plt
 
-deviations = [0, 2, 5, 10, 15, 25, 4]
+deviations = [0, 2, 5, 10, 15, 25, 45]
 iterations = 10
 
 STATS_ON_LOSES = True

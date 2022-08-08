@@ -31,7 +31,7 @@
 #ifndef RANSACLIB_RANSACLIB_RANSAC_H_
 #define RANSACLIB_RANSACLIB_RANSAC_H_
 
-// #define DEBUG true
+#define DEBUG true
 
 #include <algorithm>
 #include <cmath>
@@ -94,6 +94,25 @@ namespace ransac_lib
     // to reduce overhead.
     uint32_t lo_starting_iterations_;
     bool final_least_squares_;
+
+//      / Once a model reaches this level of unlikelihood, it is rejected. Set this
+//      / higher to make it less restrictive, usually at the cost of more execution time.
+//      /
+//      / Increasing this will make it more likely to find a good result.
+//      /
+//      / Decreasing this will speed up execution.
+//      /
+//      / This ratio is not exposed as a parameter in the original paper, but is instead computed
+//      / recursively for a few iterations. It is roughly equivalent to the **reciprocal** of the
+//      / **probability of rejecting a good model**. You can use that to control the probability
+//      / that a good model is rejected.
+//      /
+//      / Default: `1e3`
+    double likelihood_ratio_threshold_ = 1e1;
+    // estimated during runtime
+    double pos_likelihood_ratio_ = 0.0;
+    double neg_likelihood_ratio_ = 0.0;
+    size_t sprt_starting_iter_ = 52;
   };
 
   struct RansacStatistics
@@ -102,6 +121,7 @@ namespace ransac_lib
     int best_num_inliers;
     double best_model_score;
     double inlier_ratio;
+    double delta;
     std::vector<int> inlier_indices;
     int number_lo_iterations;
   };
@@ -116,6 +136,7 @@ namespace ransac_lib
       stats.best_model_score = std::numeric_limits<double>::max();
       stats.num_iterations = 0u;
       stats.inlier_ratio = 0.0;
+      stats.delta = 0.0;
       stats.inlier_indices.clear();
       stats.number_lo_iterations = 0;
     }
@@ -134,13 +155,15 @@ namespace ransac_lib
     // least-squares refinement. The latter two are optional, i.e., a dummy
     // implementation returning false is sufficient.
     // Returns the number of inliers.
-    int EstimateModel(const LORansacOptions &options, const Solver &solver,
+    int EstimateModel(LORansacOptions &options, const Solver &solver,
                       Model *best_model, RansacStatistics *statistics) const
     {
       ResetStatistics(statistics);
       RansacStatistics &stats = *statistics;
 
-      // std::cout << "[" << solver.name() << "]" << std::endl;
+#ifdef DEBUG
+      std::cout << "[" << solver.name() << "]" << std::endl;
+#endif
 
       // Sanity check: No need to run RANSAC if there are not enough data
       // points.
@@ -217,11 +240,37 @@ namespace ransac_lib
         // Finds the best model among all estimated models.
         double best_local_score = std::numeric_limits<double>::max();
         int best_local_model_id = 0;
-        GetBestEstimatedModelId(solver, estimated_models, kNumEstimatedModels,
+
+        double worst_local_score = std::numeric_limits<double>::min();
+        int worst_local_model_id = 0;
+
+        GetBestEstimatedModelId(options, solver, estimated_models, kNumEstimatedModels,
                                 kSqrInlierThresh, &best_local_score,
-                                &best_local_model_id);
+                                &best_local_model_id, &worst_local_score, &worst_local_model_id);
+
+        // estimate delta - number of points consistent with any model
+        // inspired by the rust implementation of ARRSAC
+        // https://github.com/rust-cv/arrsac/blob/main/src/lib.rs
+        // where delta estimation is computed as number of inliers of
+        // worst model
+        if (stats.num_iterations < options.sprt_starting_iter_) {
+            auto delta = static_cast<double>(GetInliers(
+                    solver, estimated_models[worst_local_model_id],
+                    options.squared_inlier_threshold_, nullptr
+            ));
+
+            delta = std::max(delta, static_cast<double>(solver.min_sample_size()));
+            delta = delta / static_cast<double> (solver.num_data());
+
+            stats.delta = stats.delta == 0 ? delta : std::min(stats.delta, delta);
+        } else if (stats.num_iterations == options.sprt_starting_iter_) {
+            assert(stats.delta < stats.inlier_ratio && "delta should be less than eps if we don't want to reject better model");
+            options.pos_likelihood_ratio_ = stats.delta / stats.inlier_ratio;
+            options.neg_likelihood_ratio_ = (1.0 - stats.delta) / (1.0 - stats.inlier_ratio);
+        }
+
 #ifdef DEBUG
-        std::cout << "[" << solver.name() << "]" << "[local score]: " << best_local_score << std::endl;
+        std::cout << "[" << solver.name() << "]" << "[" << stats.num_iterations << "]" << "[local score]: " << best_local_score << std::endl;
 #endif
         // Updates the best model found so far.
         if (best_local_score < best_min_model_score ||
@@ -310,7 +359,7 @@ namespace ransac_lib
         solver.LeastSquares(stats.inlier_indices, &refined_model);
 
         double score = std::numeric_limits<double>::max();
-        ScoreModel(solver, refined_model, kSqrInlierThresh, &score);
+        ScoreModel(options, solver, refined_model, kSqrInlierThresh, &score);
         if (score < stats.best_model_score)
         {
           stats.best_model_score = score;
@@ -333,37 +382,61 @@ namespace ransac_lib
     }
 
   protected:
-    void GetBestEstimatedModelId(const Solver &solver, const ModelVector &models,
+    void GetBestEstimatedModelId(const LORansacOptions& options, const Solver &solver, const ModelVector &models,
                                  const int num_models,
                                  const double squared_inlier_threshold,
-                                 double *best_score, int *best_model_id) const
+                                 double *best_score, int *best_model_id,
+                                 double *worst_score, int *worst_model_id) const
     {
       *best_score = std::numeric_limits<double>::max();
       *best_model_id = 0;
+
+
       for (int m = 0; m < num_models; ++m)
       {
         double score = std::numeric_limits<double>::max();
-        ScoreModel(solver, models[m], squared_inlier_threshold, &score);
+        ScoreModel(options, solver, models[m], squared_inlier_threshold, &score);
 
         if (score < *best_score)
         {
           *best_score = score;
           *best_model_id = m;
         }
+
+        if (score > *worst_score) {
+            *worst_score = score;
+            *worst_model_id = m;
+        }
       }
     }
 
-    void ScoreModel(const Solver &solver, const Model &model,
-                    const double squared_inlier_threshold, double *score) const
+    void ScoreModel(const LORansacOptions& options, const Solver &solver, const Model &model,
+                    const double squared_inlier_threshold, double *score, bool sprt = false) const
     {
-
-      // TODO: a place for SPRT ? 
+      double likelihood = 1.0;
 
       const int kNumData = solver.num_data();
       *score = 0.0;
       for (int i = 0; i < kNumData; ++i)
       {
         double squared_error = solver.EvaluateModelOnPoint(model, i);
+
+        // if we estimated initial delta and epsilon
+        if (options.pos_likelihood_ratio_ && options.neg_likelihood_ratio_) {
+            if (squared_error < options.squared_inlier_threshold_) {
+                likelihood *= options.pos_likelihood_ratio_;
+            } else {
+                likelihood *= options.neg_likelihood_ratio_;
+            }
+//            std::cout << "lik: "<< likelihood << " pos: " << options.pos_likelihood_ratio_ << " neg: " << options.neg_likelihood_ratio_ << std::endl;
+
+            if (likelihood > options.likelihood_ratio_threshold_  || likelihood == std::numeric_limits<double>::max()) {
+                std::cout << "skipped" << std::endl;
+                *score = std::numeric_limits<double>::max();
+                return;
+            }
+        }
+
         *score += ComputeScore(squared_error, squared_inlier_threshold);
       }
     }
@@ -440,7 +513,7 @@ namespace ransac_lib
       LeastSquaresFit(options, kSqInThresh * kThreshMult, solver, rng, &m_init);
 
       double score = std::numeric_limits<double>::max();
-      ScoreModel(solver, m_init, kSqInThresh, &score);
+      ScoreModel(options, solver, m_init, kSqInThresh, &score);
       UpdateBestModel(score, m_init, score_best_minimal_model,
                       best_minimal_model);
 
@@ -464,7 +537,7 @@ namespace ransac_lib
         if (!solver.NonMinimalSolver(sample, &m_non_min))
           continue;
 
-        ScoreModel(solver, m_non_min, kSqInThresh, &score);
+        ScoreModel(options, solver, m_non_min, kSqInThresh, &score);
         UpdateBestModel(score, m_non_min, score_best_minimal_model,
                         best_minimal_model);
 
@@ -480,7 +553,7 @@ namespace ransac_lib
         {
           LeastSquaresFit(options, thresh, solver, rng, &m_non_min);
 
-          ScoreModel(solver, m_non_min, kSqInThresh, &score);
+          ScoreModel(options, solver, m_non_min, kSqInThresh, &score);
           UpdateBestModel(score, m_non_min, score_best_minimal_model,
                           best_minimal_model);
           thresh -= thresh_mult_update;
