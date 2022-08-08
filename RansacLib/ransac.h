@@ -553,6 +553,10 @@ namespace ransac_lib
       Model best_minimal_model;
       double best_min_model_score = std::numeric_limits<double>::max();
 
+      #ifdef DEBUG
+      std::cout << "[mod][kMinSampleSize]: " << kMinSampleSize << std::endl;
+      #endif
+
       std::vector<int> minimal_sample(kMinSampleSize);
       ModelVector estimated_models;
 
@@ -577,7 +581,7 @@ namespace ransac_lib
                                static_cast<double>(kNumData);
           max_num_iterations = utils::NumRequiredIterations(
               stats.inlier_ratio, 1.0 - options.success_probability_,
-              solver.min_sample_size(), options.min_num_iterations_,
+              fullSolver.min_sample_size(), options.min_num_iterations_,
               options.max_num_iterations_);
         }
 
@@ -648,7 +652,7 @@ namespace ransac_lib
                                static_cast<double>(kNumData);
           max_num_iterations = utils::NumRequiredIterations(
               stats.inlier_ratio, 1.0 - options.success_probability_,
-              solver.min_sample_size(), options.min_num_iterations_,
+              fullSolver.min_sample_size(), options.min_num_iterations_,
               options.max_num_iterations_);
         }
       }
@@ -677,7 +681,7 @@ namespace ransac_lib
         fullSolver.LeastSquares(stats.inlier_indices, &refined_model);
 
         double score = std::numeric_limits<double>::max();
-        ScoreModel(solver, refined_model, kSqrInlierThresh, &score);
+        ScoreModel(fullSolver, refined_model, kSqrInlierThresh, &score);
         if (score < stats.best_model_score)
         {
           stats.best_model_score = score;

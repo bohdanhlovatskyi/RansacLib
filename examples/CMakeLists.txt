@@ -4,12 +4,14 @@ if (EXISTS "${CMAKE_SOURCE_DIR}/cmake")
   set (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_SOURCE_DIR}/cmake)
 endif ()
 
+# SET(CMAKE_CXX_COMPILER clang++)
 SET(CMAKE_CXX_FLAGS "-std=gnu++11")
 
-find_package (Eigen3 REQUIRED)
+# address leak memory undefined
+# set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fsanitize=memory -g")
 
-find_package (Ceres REQUIRED)
-
+find_package(Eigen3 REQUIRED)
+find_package(Ceres REQUIRED)
 find_package(PoseLib REQUIRED)
 
 add_definitions (-march=native)
@@ -45,3 +47,6 @@ target_link_libraries (camera_pose_estimation ${POSELIB_LIBRARIES} ${CERES_LIBRA
 
 #pybind11_add_module(pyransaclib pyransaclib.cc calibrated_absolute_pose_estimator.cc calibrated_absolute_pose_estimator.h)
 #target_link_libraries(pyransaclib PRIVATE ${POSELIB_LIBRARIES} ${CERES_LIBRARIES})
+
+# Include CMake setup
+# include(cmake/main-config.cmake)

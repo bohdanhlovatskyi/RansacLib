@@ -117,6 +117,8 @@ namespace ransac_lib
     int CalibratedAbsolutePoseEstimator::MinimalSolver(
         const std::vector<int> &sample, CameraPoses *poses) const
     {
+
+      // std::cout << "[" << name() << "][running min solver]" << std::endl;
       poses->clear();
       std::vector<Eigen::Vector3d> x(3), X(3);
       for (int i = 0; i < 3; ++i)
@@ -136,6 +138,8 @@ namespace ransac_lib
         CameraPose P;
         P.topLeftCorner<3, 3>() = pose.R();
         P.col(3) = -pose.R().transpose() * pose.t;
+        // std::cout << pose.t << std::endl;
+        assert(true && "is pose valid?");
 
         const double kError = EvaluateModelOnPoint(P, sample[3]);
         if (kError < squared_inlier_threshold_)
@@ -153,9 +157,12 @@ namespace ransac_lib
     int CalibratedAbsolutePoseEstimator::NonMinimalSolver(
         const std::vector<int> &sample, CameraPose *pose) const
     {
+      // std::cout << "[" << name() << "][running non min solver]" << std::endl;
       CameraPoses poses;
+      assert(sample.size() >= min_sample_size());
       if (MinimalSolver(sample, &poses) == 1)
       {
+        // std::cout << "[" << name() << "][success][running non min solver]" << std::endl;
         *pose = poses[0];
         LeastSquares(sample, pose);
         return 1;
@@ -170,9 +177,13 @@ namespace ransac_lib
     double CalibratedAbsolutePoseEstimator::EvaluateModelOnPoint(
         const CameraPose &pose, int i) const
     {
+
+
+      assert(i < points3D_.size() && "size does not seem to be right");
       Eigen::Vector3d p_c =
           pose.topLeftCorner<3, 3>() * (points3D_[i] - pose.col(3));
-
+      
+      assert(p_c.size() == 3 && "size does not seem to be right");
       // Check whether point projects behind the camera.
       if (p_c[2] < 0.0)
         return std::numeric_limits<double>::max();
@@ -180,6 +191,8 @@ namespace ransac_lib
       Eigen::Vector2d p_2d = p_c.head<2>() / p_c[2];
       p_2d[0] *= focal_x_;
       p_2d[1] *= focal_y_;
+
+      assert(i < points2D_.size() && "index out of range");
 
       return (p_2d - points2D_[i]).squaredNorm();
     }
@@ -266,6 +279,9 @@ namespace ransac_lib
     int CalibratedAbsolutePoseEstimator2p::MinimalSolver(
         const std::vector<int> &sample, CameraPoses *poses) const
     {
+
+      // std::cout << "[" << name() << "][running min solver]" << std::endl;
+
       poses->clear();
       std::vector<Eigen::Vector3d> x(2), X(2);
       for (int i = 0; i < 2; ++i)
@@ -312,6 +328,7 @@ namespace ransac_lib
         CameraPose P;
         P.topLeftCorner<3, 3>() = pose.R();
         P.col(3) = -pose.R().transpose() * pose.t;
+        assert(true && "is pose valid at all?");
  
         const double kError = EvaluateModelOnPoint(P, sample[2]);
         if (kError < squared_inlier_threshold_)
@@ -329,12 +346,11 @@ namespace ransac_lib
     int CalibratedAbsolutePoseEstimator2p::NonMinimalSolver(
         const std::vector<int> &sample, CameraPose *pose) const
     {
-
-      // std::cout << "[" << name() << "]" << std::endl;
-
       CameraPoses poses;
 
-      // TODO : p3p on several samples
+      // std::cout << "[" << name() << "][running non min solver]" << std::endl;
+
+      assert(sample.size() >= min_sample_size());
       if (MinimalSolver(sample, &poses) == 1)
       {
         *pose = poses[0];
@@ -351,9 +367,11 @@ namespace ransac_lib
     double CalibratedAbsolutePoseEstimator2p::EvaluateModelOnPoint(
         const CameraPose &pose, int i) const
     {
+      assert(i < points3D_.size() && "size does not seem to be right");
       Eigen::Vector3d p_c =
           pose.topLeftCorner<3, 3>() * (points3D_[i] - pose.col(3));
 
+      assert(p_c.size() == 3 && "size does not seem to be right");
       // Check whether point projects behind the camera.
       if (p_c[2] < 0.0)
         return std::numeric_limits<double>::max();
@@ -361,6 +379,8 @@ namespace ransac_lib
       Eigen::Vector2d p_2d = p_c.head<2>() / p_c[2];
       p_2d[0] *= focal_x_;
       p_2d[1] *= focal_y_;
+
+      assert(i < points2D_.size() && "index out of range");
 
       return (p_2d - points2D_[i]).squaredNorm();
     }
